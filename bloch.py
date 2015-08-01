@@ -88,13 +88,31 @@ def ssfpsignal(flip,T1,T2,TE,TR,df,phi=np.pi):
 
     return Mss
 
+def find_relevant_events(seq,z = 0.0, y = 0.0, x = 0.0, sample_times = None):
+
+    if sample_times is None:
+        return np.ones((seq.shape[0],))
+    else:
+        sample_times = np.extract(sample_times < seq.shape[0],sample_times)
+
+    mask = np.reshape(np.array([1.0,z,y,x,0.0]),(1,5))
+    sample_events = np.zeros((seq.shape[0],))
+    sample_events[sample_times] = 1
+
+    seq_events = (np.sum(np.abs(seq * mask),1) > 0.0) + (sample_events > 0)
+    return seq_events
 
 def bloch_sim(seq, T1, T2,  M = 1.0, df = 0.0, z = 0.0, y = 0.0, x = 0.0, dt = 1.0e-6, gamma = 42.576e6, sample_times = None):
     [Afp, Bfp] = freeprecess(dt,T1,T2,df)
     time_points = seq.shape[0]
 
+    #Figure out when we actually have something relevant going on
+    seq_events = find_relevant_events(seq,z,y,x,sample_times)
+
     if sample_times == None:
         sample_times = range(time_points)
+    else:
+        sample_times = np.extract(sample_times < seq.shape[0],sample_times)
 
     output_length = len(sample_times)
     Mz = np.zeros((output_length,), dtype=np.float32)
@@ -106,8 +124,9 @@ def bloch_sim(seq, T1, T2,  M = 1.0, df = 0.0, z = 0.0, y = 0.0, x = 0.0, dt = 1
     M_current = np.array([[0.0], [0.0], [M]])
 
     total_flip = 0.0;
-    for t in range(time_points):
 
+    t = 0
+    while t < time_points:
         #Any RF excitation
         if (np.abs(seq[t,0]) > 0.0):
             flip = np.abs(seq[t,0])*gamma*dt*np.pi*2
@@ -141,6 +160,25 @@ def bloch_sim(seq, T1, T2,  M = 1.0, df = 0.0, z = 0.0, y = 0.0, x = 0.0, dt = 1
             My[next_sample_idx] = M_current[1]
 
             next_sample_idx = next_sample_idx + 1
+
+            #We have all the samples we need. No need to simutale anymore
+            if (next_sample_idx >= output_length):
+                break;
+
+        #Now let's try to look ahead to see if we can just freeprecess for a
+        #few samples, if there are no relevant sequence events and no samples
+
+        t2 = 1;
+        while not (t+t2 <= time_points) and seq_events[t+t2]:
+            t2 = t2 + 1
+
+        #We can just free precess here
+        if (t2 > 1):
+            [Afp_noevents, Bfp_noevents] = freeprecess(dt*(t2-1),T1,T2,df)
+            M_current = Afp_noevents*M_current + Bfp_noevents
+            t = t + (t2-1)
+
+        t = t + 1
 
     return (Mx + 1j*My, Mz)
 

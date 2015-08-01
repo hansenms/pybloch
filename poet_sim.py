@@ -11,13 +11,13 @@ def read_poet_simulation(filename):
             if len(l) == 0:
                 continue
 
-            if l[0:2] == '; ':
-                continue
-
             if l[0] == ';':
-                #This is where we read the field names
-                field_names = line[1:].split("\t")
-                break
+                if string.find(line, 'ADC Signal Data') > 0:
+                    #This is where we read the field names
+                    field_names = line[1:].split("\t")
+                    break
+                else:
+                    continue
 
         field_names = map(string.strip, field_names)
         f.close()
@@ -46,3 +46,22 @@ def read_poet_simulation(filename):
             sequence_table[t,4] = sequence_table_raw[t,adc_column]
 
         return sequence_table
+
+def find_echo_times(seq, relative_echo_time = 0.5):
+    #Loop through the sequence and find ADCs. The echo time is defined
+    #By the relative_echo_time in the ADC
+
+    echo_times = []
+
+    time_points = seq.shape[0]
+    adc_start = -1
+    for t in range(time_points):
+        if np.abs(seq[t,4]) > 0:
+            if adc_start < 0:
+                adc_start = t
+        else:
+            if adc_start > 0:
+                echo_times.append(int(round(relative_echo_time*(t-adc_start) + adc_start)))
+                adc_start = -1
+
+    return np.asarray(echo_times)

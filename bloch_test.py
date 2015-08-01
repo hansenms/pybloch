@@ -8,15 +8,23 @@ import multiprocessing
 
 %matplotlib inline
 
-seq = poet_sim.read_poet_simulation('/Users/hansenms/temp/mini_flash.txt')
-plt.plot(np.abs(seq[:,0]))
-
 reload(bloch)
 reload(poet_sim)
 
-seq_short = seq[0:300,:]
+seq = poet_sim.read_poet_simulation('/Users/hansenms/temp/pulse_seqs/ssfp_ss_startup.txt')
+plt.plot(np.abs(seq[:,1]))
+
+TEs = poet_sim.find_echo_times(seq)
+
+seq_short = seq[:,:]
 zpos = np.linspace(-10.0e-3,10e-3,100)
-sim = bloch.ZSimulator(seq_short, 1000.0e-3, 50.0e-3)
+sim = bloch.ZSimulator(seq_short, 1000.0e-3, 50.0e-3, sample_times=TEs)
+#sim = bloch.ZSimulator(seq_short, 1000.0e-3, 50.0e-3)
+
+with bloch.Timer('Single z'):
+    Mxy, Mz = sim(0.0)
+
+plt.plot(np.abs(Mxy))
 
 number_of_processes = multiprocessing.cpu_count()
 
