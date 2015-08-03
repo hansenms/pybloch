@@ -1,3 +1,6 @@
+import matplotlib
+matplotlib.use('Agg')
+
 import bloch
 import numpy as np
 

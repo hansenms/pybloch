@@ -1,5 +1,9 @@
+import matplotlib
+matplotlib.use('Agg')
+
 import bloch
 import numpy as np
+import multiprocessing
 
 T1 = 1000.0e-3
 T2 = 50.0e-3
@@ -8,8 +12,7 @@ seq = bloch.load_seq('ssfp_ss_startup.p')
 TEs = bloch.find_echo_times(seq)
 
 zpos = np.linspace(-10.0e-3,10e-3,100)
-sim = bloch.ZSimulator(seq_short, T1, T2, sample_times=TEs)
-
+sim = bloch.ZSimulator(seq, T1, T2, sample_times=TEs)
 
 number_of_processes = multiprocessing.cpu_count()
 
