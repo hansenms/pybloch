@@ -39,7 +39,7 @@ def read_poet_simulation(filename):
         for t in range(sequence_table_raw.shape[0]):
             if (sequence_table_raw[t,rf_signal_column] > 0):
                 #TODO: Have to figure out correct RF scaling
-                sequence_table[t,0] = 0.037570*1.0e-6*cmath.rect(sequence_table_raw[t,rf_signal_column], np.pi*((sequence_table_raw[t,rf_phase_column] + sequence_table_raw[t,nco_phase_column])/180.0))
+                sequence_table[t,0] = 0.036755*1.0e-6*cmath.rect(sequence_table_raw[t,rf_signal_column], np.pi*((sequence_table_raw[t,rf_phase_column] + sequence_table_raw[t,nco_phase_column])/180.0))
             sequence_table[t,1] = 1.0e-3*sequence_table_raw[t,z_gradient_column]
             sequence_table[t,2] = 1.0e-3*sequence_table_raw[t,y_gradient_column]
             sequence_table[t,3] = 1.0e-3*sequence_table_raw[t,x_gradient_column]

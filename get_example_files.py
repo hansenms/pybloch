@@ -9,3 +9,6 @@ if not os.path.isfile('ssfp_ss_startup.p'):
 
 if not os.path.isfile('ssfp_store.p'):
     urllib.urlretrieve ('https://s3.amazonaws.com/pybloch/ssfp_store.p', 'ssfp_store.p')
+
+if not os.path.isfile('ssfp_ss_tr10.p'):
+    urllib.urlretrieve ('https://s3.amazonaws.com/pybloch/ssfp_store.p', 'ssfp_ss_tr10.p')
