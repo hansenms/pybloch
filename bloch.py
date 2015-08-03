@@ -1,5 +1,9 @@
 import numpy as np
 import time
+import pickle
+import matplotlib
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 
 def zrot(phi):
     R = np.matrix([[np.cos(phi), -np.sin(phi), 0],[np.sin(phi), np.cos(phi), 0],[0, 0, 1]],dtype=np.float32)
@@ -102,6 +106,75 @@ def find_relevant_events(seq,z = 0.0, y = 0.0, x = 0.0, sample_times = None):
     seq_events = (np.sum(np.abs(seq * mask),1) > 0.0) + (sample_events > 0)
     return seq_events
 
+def load_seq(filename):
+    return pickle.load(open(filename,'rb'))
+
+def save_seq(seq, filename):
+    pickle.dump(seq, open(filename, 'wb'))
+
+def load_sim(filename):
+    return pickle.load(open(filename,'rb'))
+
+def save_sim(Mxy, Mz, sample_times, filename):
+    pickle.dump((Mxy, Mz, sample_times), open(filename, 'wb'))
+
+def find_echo_times(seq, relative_echo_time = 0.5):
+    #Loop through the sequence and find ADCs. The echo time is defined
+    #By the relative_echo_time in the ADC
+
+    echo_times = []
+
+    time_points = seq.shape[0]
+    adc_start = -1
+    for t in range(time_points):
+        if np.abs(seq[t,4]) > 0:
+            if adc_start < 0:
+                adc_start = t
+        else:
+            if adc_start > 0:
+                echo_times.append(int(round(relative_echo_time*(t-adc_start) + adc_start)))
+                adc_start = -1
+
+    return np.asarray(echo_times)
+
+def plot_simulation(seq, s = None, sample_times = None, filename = None, title = None):
+    if s is not None:
+        f, axarr = plt.subplots(6, sharex=True)
+    else:
+        f, axarr = plt.subplots(5, sharex=True)
+
+    axarr[0].plot(np.abs(seq[:,0])*1.0e6)
+    if title is not None:
+        axarr[0].set_title(title)
+    axarr[0].set_ylabel('$RF [\mu T]$',fontsize = 8);
+    axarr[1].plot(np.real(seq[:,1])*1.0e3)
+    axarr[1].set_ylabel('$G_z [mT/m]$', fontsize = 8);
+    axarr[2].plot(np.real(seq[:,2])*1.0e3)
+    axarr[2].set_ylabel('$G_y [mT/m]$', fontsize = 8);
+    axarr[3].plot(np.real(seq[:,3])*1.0e3)
+    axarr[3].set_ylabel('$G_x [mT/m]$', fontsize = 8);
+    axarr[4].plot(np.abs(seq[:,4]))
+    axarr[4].set_ylabel('$ADC$', fontsize = 8);
+
+    if s is not None:
+        if sample_times is not None:
+            axarr[5].scatter(sample_times, np.abs(s))
+        else:
+            axarr[5].plot(np.abs(s))
+
+        axarr[5].set_ylabel('$S$', fontsize = 8);
+
+    for ax in axarr:
+        for tick in ax.yaxis.get_major_ticks():
+            tick.label.set_fontsize(6)
+        for tick in ax.xaxis.get_major_ticks():
+            tick.label.set_fontsize(6)
+
+    if filename is not None:
+        pp = PdfPages(filename)
+        plt.savefig(pp, format='pdf')
+        pp.close()
+
 def bloch_sim(seq, T1, T2,  M = 1.0, df = 0.0, z = 0.0, y = 0.0, x = 0.0, dt = 1.0e-6, gamma = 42.576e6, sample_times = None):
     [Afp, Bfp] = freeprecess(dt,T1,T2,df)
     time_points = seq.shape[0]
@@ -109,7 +182,7 @@ def bloch_sim(seq, T1, T2,  M = 1.0, df = 0.0, z = 0.0, y = 0.0, x = 0.0, dt = 1
     #Figure out when we actually have something relevant going on
     seq_events = find_relevant_events(seq,z,y,x,sample_times)
 
-    if sample_times == None:
+    if sample_times is None:
         sample_times = range(time_points)
     else:
         sample_times = np.extract(sample_times < seq.shape[0],sample_times)

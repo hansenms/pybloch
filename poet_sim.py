@@ -39,29 +39,10 @@ def read_poet_simulation(filename):
         for t in range(sequence_table_raw.shape[0]):
             if (sequence_table_raw[t,rf_signal_column] > 0):
                 #TODO: Have to figure out correct RF scaling
-                sequence_table[t,0] = 0.037570*1.0e-6*cmath.rect(sequence_table_raw[t,rf_signal_column], np.pi*((sequence_table_raw[t,rf_phase_column] + sequence_table_raw[t,nco_phase_column])/180))
+                sequence_table[t,0] = 0.037570*1.0e-6*cmath.rect(sequence_table_raw[t,rf_signal_column], np.pi*((sequence_table_raw[t,rf_phase_column] + sequence_table_raw[t,nco_phase_column])/180.0))
             sequence_table[t,1] = 1.0e-3*sequence_table_raw[t,z_gradient_column]
             sequence_table[t,2] = 1.0e-3*sequence_table_raw[t,y_gradient_column]
             sequence_table[t,3] = 1.0e-3*sequence_table_raw[t,x_gradient_column]
-            sequence_table[t,4] = sequence_table_raw[t,adc_column]
+            sequence_table[t,4] = cmath.rect(sequence_table_raw[t,adc_column], np.pi*(sequence_table_raw[t,nco_phase_column]/180.0))
 
         return sequence_table
-
-def find_echo_times(seq, relative_echo_time = 0.5):
-    #Loop through the sequence and find ADCs. The echo time is defined
-    #By the relative_echo_time in the ADC
-
-    echo_times = []
-
-    time_points = seq.shape[0]
-    adc_start = -1
-    for t in range(time_points):
-        if np.abs(seq[t,4]) > 0:
-            if adc_start < 0:
-                adc_start = t
-        else:
-            if adc_start > 0:
-                echo_times.append(int(round(relative_echo_time*(t-adc_start) + adc_start)))
-                adc_start = -1
-
-    return np.asarray(echo_times)
